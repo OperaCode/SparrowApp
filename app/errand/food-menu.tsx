@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors, spacing, typography, radius } from '@/constants/theme';
@@ -5,20 +6,48 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { ErrandCartBar } from '@/components/ErrandCartBar';
 import { QuantityStepper } from '@/components/QuantityStepper';
 import { Badge } from '@/components/Badge';
+import { EmptyState } from '@/components/EmptyState';
+import { Button } from '@/components/Button';
 import { useErrandCart } from '@/contexts/ErrandCartContext';
-import { getFoodVendorById, getFoodItemsByVendor } from '@/lib/errandCatalog';
+import { getActiveFoodVendorById, getFoodItemsByVendor } from '@/lib/errandCatalog';
 
 export default function FoodMenuScreen() {
   const { vendorId } = useLocalSearchParams<{ vendorId: string }>();
-  const vendor = getFoodVendorById(vendorId ?? '');
-  const items = getFoodItemsByVendor(vendorId ?? '');
-  const { itemCount, goodsSubtotal, getQuantity, addItem, decrementItem } = useErrandCart();
+  // Inactive or unknown vendors resolve to null, so a stale link can't open their menu.
+  const vendor = getActiveFoodVendorById(vendorId ?? '');
+  const { itemCount, goodsSubtotal, getQuantity, addItem, decrementItem, startService, selectVendor } =
+    useErrandCart();
 
+  // Bind the cart to this vendor even when the screen is reached without the vendor list
+  // (deep link / reload). Both calls are no-ops when already set.
+  useEffect(() => {
+    if (!vendor) return;
+    startService('food');
+    selectVendor(vendor.id, vendor.name);
+  }, [vendor?.id]);
+
+  if (!vendor) {
+    return (
+      <View style={styles.container}>
+        <ScreenHeader title="Menu" />
+        <EmptyState
+          title="Vendor unavailable"
+          message="This vendor isn't taking orders right now. Please choose another Sparrow vendor."
+          style={styles.empty}
+        />
+        <View style={styles.footer}>
+          <Button label="Choose a vendor" onPress={() => router.replace('/errand/food-vendors')} />
+        </View>
+      </View>
+    );
+  }
+
+  const items = getFoodItemsByVendor(vendor.id);
   const categories = Array.from(new Set(items.map((i) => i.category)));
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={vendor?.name ?? 'Menu'} />
+      <ScreenHeader title={vendor.name} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {categories.map((category) => (
@@ -61,6 +90,8 @@ export default function FoodMenuScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl + spacing.xl },
+  empty: { flex: 1, justifyContent: 'center' },
+  footer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
   section: { marginBottom: spacing.lg },
   sectionTitle: { ...typography.label, color: colors.textTertiary, marginBottom: spacing.sm },
   card: {
