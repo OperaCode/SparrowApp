@@ -1,5 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { CartItemType } from '@/types';
+import { isFoodItemOrderable, isGroceryProductOrderable } from '@/lib/errandCatalog';
+import { calculateErrandCartTotals, type ErrandCartTotals } from '@/lib/pricing';
 
 export type ErrandService = 'groceries' | 'food';
 
@@ -39,6 +41,7 @@ const initialState: ErrandCartState = {
 
 interface ErrandCartContextValue extends ErrandCartState {
   goodsSubtotal: number;
+  totals: ErrandCartTotals;
   itemCount: number;
   startService: (service: ErrandService) => void;
   selectVendor: (vendorId: string, vendorName: string) => void;
@@ -70,6 +73,14 @@ export function ErrandCartProvider({ children }: { children: ReactNode }) {
 
   const addItem = (line: Omit<ErrandCartLine, 'quantity'>) => {
     setState((prev) => {
+      // Defence in depth: the UI already hides unavailable items, but the cart
+      // itself never accepts them, nor food from a vendor other than the selected one.
+      const orderable =
+        line.itemType === 'food'
+          ? prev.service === 'food' && isFoodItemOrderable(line.itemId, prev.vendorId)
+          : isGroceryProductOrderable(line.itemId);
+      if (!orderable) return prev;
+
       const existing = prev.items.find((i) => i.itemId === line.itemId);
       if (existing) {
         return {
@@ -107,10 +118,8 @@ export function ErrandCartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setState(initialState);
 
-  const goodsSubtotal = useMemo(
-    () => state.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0),
-    [state.items],
-  );
+  const totals = useMemo(() => calculateErrandCartTotals(state.items), [state.items]);
+  const goodsSubtotal = totals.subtotal;
   const itemCount = useMemo(() => state.items.reduce((sum, i) => sum + i.quantity, 0), [state.items]);
 
   return (
@@ -118,6 +127,7 @@ export function ErrandCartProvider({ children }: { children: ReactNode }) {
       value={{
         ...state,
         goodsSubtotal,
+        totals,
         itemCount,
         startService,
         selectVendor,

@@ -94,3 +94,25 @@ export function getErrandFee(tier: ErrandTier | null): number | null {
  */
 export const ERRAND_CART_SERVICE_FEE = 500;
 export const ERRAND_CART_DELIVERY_FEE = 800;
+
+export interface ErrandCartTotals {
+  /** Food/goods subtotal — pass-through cost, always shown separately from Sparrow's fees. */
+  subtotal: number;
+  serviceFee: number;
+  deliveryFee: number;
+  total: number;
+}
+
+/**
+ * The single place cart totals are computed. Pure and order-independent: the
+ * same lines always produce the same totals on every screen. Prices are whole
+ * naira, so integer arithmetic keeps this exact.
+ */
+export function calculateErrandCartTotals(
+  lines: ReadonlyArray<{ unitPrice: number; quantity: number }>,
+): ErrandCartTotals {
+  const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+  const serviceFee = ERRAND_CART_SERVICE_FEE;
+  const deliveryFee = ERRAND_CART_DELIVERY_FEE;
+  return { subtotal, serviceFee, deliveryFee, total: subtotal + serviceFee + deliveryFee };
+}

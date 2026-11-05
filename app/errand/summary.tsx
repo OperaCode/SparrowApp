@@ -7,7 +7,6 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { useErrandCart } from '@/contexts/ErrandCartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDeliveries } from '@/contexts/DeliveriesContext';
-import { ERRAND_CART_SERVICE_FEE, ERRAND_CART_DELIVERY_FEE } from '@/lib/pricing';
 import type { DeliveryDraft } from '@/contexts/DraftContext';
 
 export default function ErrandSummaryScreen() {
@@ -16,10 +15,12 @@ export default function ErrandSummaryScreen() {
   const { addDelivery } = useDeliveries();
   const [submitting, setSubmitting] = useState(false);
 
-  const total = cart.goodsSubtotal + ERRAND_CART_SERVICE_FEE + ERRAND_CART_DELIVERY_FEE;
+  const { subtotal, serviceFee, deliveryFee, total } = cart.totals;
   const isFood = cart.service === 'food';
+  const canSubmit = cart.items.length > 0 && (!isFood || !!cart.vendorId);
 
   const handleSubmit = () => {
+    if (!canSubmit || submitting) return;
     setSubmitting(true);
 
     const itemsDescription = cart.items.map((i) => `${i.name} x${i.quantity}`).join(', ');
@@ -53,8 +54,8 @@ export default function ErrandSummaryScreen() {
       specialPickupFee: null,
       errandCategory: isFood ? 'food_pickup' : 'groceries',
       errandTier: 'simple',
-      errandFee: ERRAND_CART_SERVICE_FEE,
-      estimatedItemCost: cart.goodsSubtotal,
+      errandFee: serviceFee,
+      estimatedItemCost: subtotal,
     };
 
     const delivery = addDelivery(draft, profile?.id ?? 'mock-user-id');
@@ -94,9 +95,9 @@ export default function ErrandSummaryScreen() {
 
           <View style={styles.divider} />
 
-          <Row label={isFood ? 'FOOD SUBTOTAL' : 'GOODS SUBTOTAL'} value={`₦${cart.goodsSubtotal.toLocaleString()}`} />
-          <Row label="SPARROW ERRAND FEE" value={`₦${ERRAND_CART_SERVICE_FEE.toLocaleString()}`} />
-          <Row label="DELIVERY" value={`₦${ERRAND_CART_DELIVERY_FEE.toLocaleString()}`} />
+          <Row label={isFood ? 'FOOD SUBTOTAL' : 'GOODS SUBTOTAL'} value={`₦${subtotal.toLocaleString()}`} />
+          <Row label="SPARROW ERRAND FEE" value={`₦${serviceFee.toLocaleString()}`} />
+          <Row label="DELIVERY" value={`₦${deliveryFee.toLocaleString()}`} />
 
           <View style={styles.divider} />
 
@@ -115,7 +116,7 @@ export default function ErrandSummaryScreen() {
           </Text>
         </View>
 
-        <Button label="Send to Sparrow" onPress={handleSubmit} loading={submitting} />
+        <Button label="Send to Sparrow" onPress={handleSubmit} loading={submitting} disabled={!canSubmit} />
       </ScrollView>
     </View>
   );

@@ -6,11 +6,9 @@ import { QuantityStepper } from '@/components/QuantityStepper';
 import { EmptyState } from '@/components/EmptyState';
 import { Button } from '@/components/Button';
 import { useErrandCart } from '@/contexts/ErrandCartContext';
-import { ERRAND_CART_SERVICE_FEE, ERRAND_CART_DELIVERY_FEE } from '@/lib/pricing';
 
 export default function GroceriesCartScreen() {
-  const { items, goodsSubtotal, incrementItem, decrementItem } = useErrandCart();
-  const total = goodsSubtotal + ERRAND_CART_SERVICE_FEE + ERRAND_CART_DELIVERY_FEE;
+  const { items, totals, incrementItem, decrementItem } = useErrandCart();
 
   return (
     <View style={styles.container}>
@@ -46,20 +44,20 @@ export default function GroceriesCartScreen() {
           <View style={styles.feeCard}>
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Goods subtotal</Text>
-              <Text style={styles.feeValue}>₦{goodsSubtotal.toLocaleString()}</Text>
+              <Text style={styles.feeValue}>₦{totals.subtotal.toLocaleString()}</Text>
             </View>
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Sparrow Errand Fee</Text>
-              <Text style={styles.feeValue}>₦{ERRAND_CART_SERVICE_FEE.toLocaleString()}</Text>
+              <Text style={styles.feeValue}>₦{totals.serviceFee.toLocaleString()}</Text>
             </View>
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Delivery</Text>
-              <Text style={styles.feeValue}>₦{ERRAND_CART_DELIVERY_FEE.toLocaleString()}</Text>
+              <Text style={styles.feeValue}>₦{totals.deliveryFee.toLocaleString()}</Text>
             </View>
             <View style={styles.feeDivider} />
             <View style={styles.feeRow}>
               <Text style={styles.feeTotalLabel}>TOTAL</Text>
-              <Text style={styles.feeTotalValue}>₦{total.toLocaleString()}</Text>
+              <Text style={styles.feeTotalValue}>₦{totals.total.toLocaleString()}</Text>
             </View>
           </View>
 

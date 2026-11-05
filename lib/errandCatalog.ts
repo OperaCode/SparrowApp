@@ -121,6 +121,32 @@ export function getFoodVendorById(id: string): FoodVendor | null {
   return FOOD_VENDORS.find((v) => v.id === id) ?? null;
 }
 
+/** Vendors customers may order from. Inactive vendors are never shown. */
+export function getActiveFoodVendors(): FoodVendor[] {
+  return FOOD_VENDORS.filter((v) => v.isActive);
+}
+
+/** Like getFoodVendorById, but returns null for inactive vendors (e.g. a stale deep link). */
+export function getActiveFoodVendorById(id: string): FoodVendor | null {
+  const vendor = getFoodVendorById(id);
+  return vendor?.isActive ? vendor : null;
+}
+
 export function getFoodItemsByVendor(vendorId: string): FoodItem[] {
   return FOOD_ITEMS.filter((i) => i.vendorId === vendorId);
+}
+
+/**
+ * A food item can go in the cart only if it exists, is available, belongs to
+ * the given vendor, and that vendor is active.
+ */
+export function isFoodItemOrderable(itemId: string, vendorId: string | null): boolean {
+  if (!vendorId || !getActiveFoodVendorById(vendorId)) return false;
+  const item = FOOD_ITEMS.find((i) => i.id === itemId);
+  return !!item && item.isAvailable && item.vendorId === vendorId;
+}
+
+export function isGroceryProductOrderable(productId: string): boolean {
+  const product = GROCERY_PRODUCTS.find((p) => p.id === productId);
+  return !!product && product.isAvailable;
 }
